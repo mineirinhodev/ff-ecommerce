@@ -4,7 +4,7 @@
   "cpu": "512",
   "memory": "1024",
   "requiresCompatibilities": ["FARGATE"],
-  "executionRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::376129844044:role/ecsTaskExecutionRole",
   "containerDefinitions": [
     {
       "name": "auth-service",

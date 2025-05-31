@@ -90,6 +90,7 @@ public class CognitoAuthService {
         );
     }
 
+
     private Map<String, String> authenticate(Map<String, String> authParams, AuthFlowType flow) {
         try {
             InitiateAuthResponse response = cognitoClient.initiateAuth(InitiateAuthRequest.builder()

@@ -1,0 +1,6 @@
+aws:
+  accessKeyId: sua-access-key-aqui
+  secretKey: sua-secret-key-aqui
+  cognito:
+    userPoolId: seu-user-pool-id
+    clientId: seu-client-id 

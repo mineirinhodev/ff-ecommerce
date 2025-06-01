@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: auth-service
+
+aws:
+  region: us-east-1
+  # Credenciais são opcionais se estiver usando IAM Role
+  # accessKeyId: sua-access-key
+  # secretKey: sua-secret-key
+  cognito:
+    userPoolId: ${COGNITO_USER_POOL_ID}
+    clientId: ${COGNITO_CLIENT_ID}
+
+server:
+  port: 8080 

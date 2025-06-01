@@ -1,82 +1,81 @@
 package com.emerson.authservice.service;
 
+import com.emerson.authservice.exception.AuthenticationException;
+import com.emerson.authservice.exception.UserAlreadyExistsException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
-
 @Service
+@RequiredArgsConstructor
 public class CognitoAuthService {
 
     private final CognitoIdentityProviderClient cognitoClient;
-    private final String clientId;
-    private final String userPoolId;
-
-    public CognitoAuthService(
-            @Value("${aws.cognito.clientId}") String clientId,
-            @Value("${aws.cognito.userPoolId}") String userPoolId,
-            @Value("${aws.cognito.region}") String region
-    ) {
-        this.clientId = clientId;
-        this.userPoolId = userPoolId;
-        this.cognitoClient = CognitoIdentityProviderClient.builder()
-                .region(Region.of(region))
-                .build();
-    }
+    @Value("${aws.cognito.client-id}") String clientId;
+    @Value("${aws.cognito.user-pool-id}") String userPoolId;
 
 
     public Map<String, String> login(String email, String password) {
-        return authenticate(
-                Map.of("USERNAME", email, "PASSWORD", password),
-                AuthFlowType.USER_PASSWORD_AUTH
-        );
+        try {
+            Map<String, String> authParams = new HashMap<>();
+            authParams.put("USERNAME", email);
+            authParams.put("PASSWORD", password);
+
+            InitiateAuthRequest request = InitiateAuthRequest.builder()
+                    .clientId(clientId)
+                    .authFlow(AuthFlowType.USER_PASSWORD_AUTH)
+                    .authParameters(authParams)
+                    .build();
+
+            InitiateAuthResponse response = cognitoClient.initiateAuth(request);
+            AuthenticationResultType authResult = response.authenticationResult();
+
+            Map<String, String> tokens = new HashMap<>();
+            tokens.put("accessToken", authResult.accessToken());
+            tokens.put("idToken", authResult.idToken());
+            tokens.put("refreshToken", authResult.refreshToken());
+            tokens.put("expiresIn", String.valueOf(authResult.expiresIn()));
+
+            return tokens;
+        } catch (NotAuthorizedException e) {
+            throw new AuthenticationException("Invalid credentials");
+        } catch (Exception e) {
+            throw new AuthenticationException("Error during login: " + e.getMessage());
+        }
     }
 
-
-    public void register(String email, String password) {
+    public void register(String email, String password, String name) {
         try {
-            // 🔥 Cria o usuário no Cognito
-            cognitoClient.signUp(SignUpRequest.builder()
-                    .clientId(clientId)
+            AdminCreateUserRequest createRequest = AdminCreateUserRequest.builder()
+                    .userPoolId(userPoolId)
+                    .username(email)
+                    .userAttributes(
+                            AttributeType.builder().name("email").value(email).build(),
+                            AttributeType.builder().name("name").value(name).build(),
+                            AttributeType.builder().name("email_verified").value("true").build()
+                    )
+                    .messageAction(MessageActionType.SUPPRESS)
+                    .build();
+
+            cognitoClient.adminCreateUser(createRequest);
+
+            AdminSetUserPasswordRequest passwordRequest = AdminSetUserPasswordRequest.builder()
+                    .userPoolId(userPoolId)
                     .username(email)
                     .password(password)
-                    .userAttributes(
-                            AttributeType.builder()
-                                    .name("email")
-                                    .value(email)
-                                    .build()
-                    )
-                    .build());
+                    .permanent(true)
+                    .build();
 
-            cognitoClient.adminConfirmSignUp(AdminConfirmSignUpRequest.builder()
-                    .userPoolId(userPoolId)
-                    .username(email)
-                    .build());
-
-            cognitoClient.adminUpdateUserAttributes(AdminUpdateUserAttributesRequest.builder()
-                    .userPoolId(userPoolId)
-                    .username(email)
-                    .userAttributes(
-                            AttributeType.builder()
-                                    .name("email_verified")
-                                    .value("true")
-                                    .build()
-                    )
-                    .build());
-
+            cognitoClient.adminSetUserPassword(passwordRequest);
         } catch (UsernameExistsException e) {
-            throw new RuntimeException("Usuário já existe.");
-        } catch (InvalidPasswordException e) {
-            throw new RuntimeException("Senha não atende aos requisitos de segurança.");
-        } catch (InvalidParameterException e) {
-            throw new RuntimeException("Parâmetros inválidos.");
-        } catch (CognitoIdentityProviderException e) {
-            throw new RuntimeException("Erro no Cognito: " + e.awsErrorDetails().errorMessage());
+            throw new UserAlreadyExistsException("Email already registered");
+        } catch (Exception e) {
+            throw new AuthenticationException("Error during registration: " + e.getMessage());
         }
     }
 
@@ -85,16 +84,14 @@ public class CognitoAuthService {
      */
     public Map<String, String> refreshToken(String refreshToken) {
         return authenticate(
-                Map.of("REFRESH_TOKEN", refreshToken),
-                AuthFlowType.REFRESH_TOKEN_AUTH
+                Map.of("REFRESH_TOKEN", refreshToken)
         );
     }
 
-
-    private Map<String, String> authenticate(Map<String, String> authParams, AuthFlowType flow) {
+    private Map<String, String> authenticate(Map<String, String> authParams) {
         try {
             InitiateAuthResponse response = cognitoClient.initiateAuth(InitiateAuthRequest.builder()
-                    .authFlow(flow)
+                    .authFlow(AuthFlowType.REFRESH_TOKEN_AUTH)
                     .clientId(clientId)
                     .authParameters(authParams)
                     .build());
@@ -117,12 +114,12 @@ public class CognitoAuthService {
 
     private RuntimeException translateCognitoException(CognitoIdentityProviderException e) {
         return switch (e) {
-            case NotAuthorizedException ignored -> new RuntimeException("Credenciais inválidas.");
-            case UserNotFoundException ignored -> new RuntimeException("Usuário não encontrado.");
-            case UsernameExistsException ignored -> new RuntimeException("Usuário já existe.");
-            case InvalidPasswordException ignored -> new RuntimeException("Senha não atende aos requisitos.");
-            case InvalidParameterException ignored -> new RuntimeException("Parâmetros inválidos.");
-            default -> new RuntimeException("Erro Cognito: " + e.awsErrorDetails().errorMessage(), e);
+            case NotAuthorizedException ignored -> new RuntimeException("Invalid credentials");
+            case UserNotFoundException ignored -> new RuntimeException("User not found");
+            case UsernameExistsException ignored -> new RuntimeException("User already exists");
+            case InvalidPasswordException ignored -> new RuntimeException("Password does not meet requirements");
+            case InvalidParameterException ignored -> new RuntimeException("Invalid parameters");
+            default -> new RuntimeException("Cognito Error: " + e.awsErrorDetails().errorMessage(), e);
         };
     }
 
@@ -134,25 +131,25 @@ public class CognitoAuthService {
                     .build();
 
             cognitoClient.forgotPassword(request);
-
-        } catch (CognitoIdentityProviderException e) {
-            throw new RuntimeException("Erro ao solicitar reset de senha: " + e.awsErrorDetails().errorMessage());
+        } catch (Exception e) {
+            throw new AuthenticationException("Error requesting password recovery: " + e.getMessage());
         }
     }
 
-    public void confirmForgotPassword(String email, String confirmationCode, String newPassword) {
+    public void confirmForgotPassword(String email, String code, String newPassword) {
         try {
             ConfirmForgotPasswordRequest request = ConfirmForgotPasswordRequest.builder()
                     .clientId(clientId)
                     .username(email)
-                    .confirmationCode(confirmationCode)
+                    .confirmationCode(code)
                     .password(newPassword)
                     .build();
 
             cognitoClient.confirmForgotPassword(request);
-
-        } catch (CognitoIdentityProviderException e) {
-            throw new RuntimeException("Erro ao confirmar reset de senha: " + e.awsErrorDetails().errorMessage());
+        } catch (CodeMismatchException e) {
+            throw new AuthenticationException("Invalid verification code");
+        } catch (Exception e) {
+            throw new AuthenticationException("Error confirming new password: " + e.getMessage());
         }
     }
 }

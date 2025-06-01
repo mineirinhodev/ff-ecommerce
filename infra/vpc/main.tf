@@ -39,8 +39,22 @@ resource "aws_route_table_association" "a" {
   route_table_id = aws_route_table.public.id
 }
 
-# VPC Endpoints
-resource "aws_vpc_endpoint" "logs" {
+# Security Group para VPC Endpoints
+resource "aws_security_group" "vpc_endpoints" {
+  name        = "vpc-endpoints-sg"
+  description = "Security group for VPC endpoints"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    cidr_blocks     = [aws_vpc.main.cidr_block]
+  }
+}
+
+# VPC Endpoint para CloudWatch Logs
+resource "aws_vpc_endpoint" "cloudwatch_logs" {
   vpc_id              = aws_vpc.main.id
   service_name        = "com.amazonaws.us-east-1.logs"
   vpc_endpoint_type   = "Interface"
@@ -49,21 +63,30 @@ resource "aws_vpc_endpoint" "logs" {
   private_dns_enabled = true
 }
 
-resource "aws_security_group" "vpc_endpoints" {
-  name_prefix = "vpc-endpoints"
-  vpc_id      = aws_vpc.main.id
+# VPC Endpoint para ECR API
+resource "aws_vpc_endpoint" "ecr_api" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.us-east-1.ecr.api"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.public[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+}
 
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = [aws_vpc.main.cidr_block]
-  }
+# VPC Endpoint para ECR DKR
+resource "aws_vpc_endpoint" "ecr_dkr" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.us-east-1.ecr.dkr"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.public[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+}
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+# VPC Endpoint para S3 (necessário para ECR)
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.us-east-1.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = [aws_route_table.public.id]
 }

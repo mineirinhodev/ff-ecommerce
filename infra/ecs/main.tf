@@ -89,11 +89,12 @@ resource "aws_ecs_task_definition" "this" {
 
 # 🔥 ECS Service
 resource "aws_ecs_service" "this" {
-  name            = var.service_name
-  cluster         = aws_ecs_cluster.this.id
-  task_definition = aws_ecs_task_definition.this.arn
-  launch_type     = "FARGATE"
-  desired_count   = 1
+  name                = var.service_name
+  cluster             = aws_ecs_cluster.this.id
+  task_definition     = aws_ecs_task_definition.this.arn
+  launch_type         = "FARGATE"
+  desired_count       = 1
+  force_new_deployment = true
 
   network_configuration {
     subnets          = data.terraform_remote_state.vpc.outputs.subnet_ids
@@ -102,6 +103,6 @@ resource "aws_ecs_service" "this" {
   }
 
   lifecycle {
-    ignore_changes = [task_definition]
+    ignore_changes = [task_definition, force_new_deployment]
   }
 }

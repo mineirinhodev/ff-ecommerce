@@ -33,3 +33,8 @@ variable "container_port" {
   type        = number
   default     = 8080
 }
+
+variable "alert_email" {
+  description = "Email para receber alertas de CloudWatch"
+  type        = string
+}

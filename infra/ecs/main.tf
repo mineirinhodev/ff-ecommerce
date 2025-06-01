@@ -38,6 +38,12 @@ data "terraform_remote_state" "iam" {
   }
 }
 
+# 🔥 CloudWatch Log Group
+resource "aws_cloudwatch_log_group" "this" {
+  name              = "/ecs/${var.service_name}"
+  retention_in_days = 7
+}
+
 # 🔥 ECS Cluster
 resource "aws_ecs_cluster" "this" {
   name = var.cluster_name
@@ -58,11 +64,21 @@ resource "aws_ecs_task_definition" "this" {
     cpu       = var.cpu
     memory    = var.memory
     essential = true
+
     portMappings = [{
       containerPort = var.container_port
       hostPort      = var.container_port
       protocol      = "tcp"
     }]
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        awslogs-group         = "/ecs/${var.service_name}"
+        awslogs-region        = "us-east-1"
+        awslogs-stream-prefix = "ecs"
+      }
+    }
   }])
 }
 

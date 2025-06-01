@@ -174,6 +174,12 @@ terragrunt destroy
 
 ✔️ Gerenciamento de ambientes multi-account (via Organizations)
 
+✔️ Template Atlantis (deploy via PR + comentários)
+
+✔️ Pipeline profissional com ambiente de QA, Dev, Prod
+
+✔️ Monitoramento + Alerts com AWS CloudWatch + SNS
+
 ## 🤝 Contribuição
 Sinta-se livre para abrir PRs, issues ou propor melhorias.
 

@@ -1,3 +1,6 @@
+provider "aws" {
+  region = "us-east-1"
+}
 # 🔗 Importa a VPC
 data "terraform_remote_state" "vpc" {
   backend = "s3"
@@ -39,10 +42,11 @@ data "terraform_remote_state" "iam" {
 }
 
 # 🔥 CloudWatch Log Group
-resource "aws_cloudwatch_log_group" "this" {
+resource "aws_cloudwatch_log_group" "ecs_log_group" {
   name              = "/ecs/${var.service_name}"
   retention_in_days = 7
 }
+
 
 # 🔥 ECS Cluster
 resource "aws_ecs_cluster" "this" {
@@ -81,6 +85,7 @@ resource "aws_ecs_task_definition" "this" {
     }
   }])
 }
+
 
 # 🔥 ECS Service
 resource "aws_ecs_service" "this" {

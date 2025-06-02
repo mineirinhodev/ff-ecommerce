@@ -1,4 +1,4 @@
-# 🛠️ Auth Service — Backend com Spring Boot + AWS + TerraformAdd commentMore actions
+# 🛠️ Auth Service — Backend com Spring Boot + AWS + Terraform
 
 ## 🚀 Descrição do Projeto
 Este projeto é uma API de autenticação robusta, escalável e pronta para produção.  

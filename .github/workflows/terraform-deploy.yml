@@ -26,11 +26,12 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y jq
       - name: Limpar locks antigos do Terraform (DynamoDB)
         run: |
-          set -euo pipefail
+          set +e
+          trap 'exit 0' EXIT
           LOCK_TABLE="terraform-lock" # ajuste se necessário
           MAX_AGE_MINUTES=30
-          aws dynamodb scan --table-name "$LOCK_TABLE" --query "Items[*]" > locks.json
-          COUNT=$(jq length locks.json)
+          aws dynamodb scan --table-name "$LOCK_TABLE" --query "Items[*]" > locks.json 2>/dev/null || { echo "Falha ao escanear tabela ou tabela não existe. Ignorando limpeza de locks."; exit 0; }
+          COUNT=$(jq length locks.json 2>/dev/null || echo 0)
           if [ "$COUNT" -eq 0 ]; then
             echo "Nenhum lock encontrado."
             exit 0
@@ -39,7 +40,7 @@ jobs:
             LOCK_ID=$(echo $row | jq -r '.LockID.S')
             INFO=$(echo $row | jq -r '.Info.S // empty')
             if [ -z "$INFO" ]; then
-              aws dynamodb delete-item --table-name "$LOCK_TABLE" --key "{\"LockID\": {\"S\": \"$LOCK_ID\"}}" || true
+              aws dynamodb delete-item --table-name "$LOCK_TABLE" --key "{\"LockID\": {\"S\": \"$LOCK_ID\"}}" 2>/dev/null || true
               echo "Lock $LOCK_ID removido (sem Info)"
               continue
             fi
@@ -49,7 +50,7 @@ jobs:
               NOW=$(date +%s)
               AGE=$(( (NOW - CREATED_TS) / 60 ))
               if [ "$AGE" -gt $MAX_AGE_MINUTES ]; then
-                aws dynamodb delete-item --table-name "$LOCK_TABLE" --key "{\"LockID\": {\"S\": \"$LOCK_ID\"}}" || true
+                aws dynamodb delete-item --table-name "$LOCK_TABLE" --key "{\"LockID\": {\"S\": \"$LOCK_ID\"}}" 2>/dev/null || true
                 echo "Lock $LOCK_ID removido (idade: $AGE min)"
               fi
             fi
@@ -90,11 +91,12 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y jq
       - name: Limpar locks antigos do Terraform (DynamoDB)
         run: |
-          set -euo pipefail
+          set +e
+          trap 'exit 0' EXIT
           LOCK_TABLE="terraform-lock" # ajuste se necessário
           MAX_AGE_MINUTES=30
-          aws dynamodb scan --table-name "$LOCK_TABLE" --query "Items[*]" > locks.json
-          COUNT=$(jq length locks.json)
+          aws dynamodb scan --table-name "$LOCK_TABLE" --query "Items[*]" > locks.json 2>/dev/null || { echo "Falha ao escanear tabela ou tabela não existe. Ignorando limpeza de locks."; exit 0; }
+          COUNT=$(jq length locks.json 2>/dev/null || echo 0)
           if [ "$COUNT" -eq 0 ]; then
             echo "Nenhum lock encontrado."
             exit 0
@@ -103,7 +105,7 @@ jobs:
             LOCK_ID=$(echo $row | jq -r '.LockID.S')
             INFO=$(echo $row | jq -r '.Info.S // empty')
             if [ -z "$INFO" ]; then
-              aws dynamodb delete-item --table-name "$LOCK_TABLE" --key "{\"LockID\": {\"S\": \"$LOCK_ID\"}}" || true
+              aws dynamodb delete-item --table-name "$LOCK_TABLE" --key "{\"LockID\": {\"S\": \"$LOCK_ID\"}}" 2>/dev/null || true
               echo "Lock $LOCK_ID removido (sem Info)"
               continue
             fi
@@ -113,7 +115,7 @@ jobs:
               NOW=$(date +%s)
               AGE=$(( (NOW - CREATED_TS) / 60 ))
               if [ "$AGE" -gt $MAX_AGE_MINUTES ]; then
-                aws dynamodb delete-item --table-name "$LOCK_TABLE" --key "{\"LockID\": {\"S\": \"$LOCK_ID\"}}" || true
+                aws dynamodb delete-item --table-name "$LOCK_TABLE" --key "{\"LockID\": {\"S\": \"$LOCK_ID\"}}" 2>/dev/null || true
                 echo "Lock $LOCK_ID removido (idade: $AGE min)"
               fi
             fi

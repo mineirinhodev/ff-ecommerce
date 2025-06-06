@@ -1,0 +1,53 @@
+name: Terraform Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    if: contains(github.event.head_commit.message, '#deploy')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module:
+          - backend-bootstrap
+          - vpc
+          - security
+          - iam
+          - ecr
+          - ecs
+          - api-gateway
+          # NÃO incluir: router53-acm, api-gateway-domain
+
+    defaults:
+      run:
+        working-directory: infra/${{ matrix.module }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Configurar credenciais da AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+      - name: Aviso sobre módulos não aplicados
+        if: ${{ matrix.module == 'api-gateway' }}
+        run: echo 'Os módulos router53-acm e api-gateway-domain NÃO são aplicados automaticamente por este workflow.' 

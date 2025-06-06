@@ -31,3 +31,5 @@ build/
 
 ### VS Code ###
 .vscode/
+/v1/projeto/documentos/ARQUITETURA.md
+/v1/projeto/documentos/diagrama-hexagonal.mmd

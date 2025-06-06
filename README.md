@@ -1,171 +1,186 @@
-# Auth Service
+# 🛠️ Auth Service — Backend com Spring Boot + AWS + Terraform
 
-Serviço de autenticação construído com Spring Boot e integrado com diversos serviços AWS.
+## 🚀 Descrição do Projeto
+Este projeto é uma API de autenticação robusta, escalável e pronta para produção.  
+Utiliza **Spring Boot**, **AWS Cognito** para gerenciamento de autenticação, além de ser totalmente provisionado na **AWS via Terraform**, rodando no **ECS com Fargate**, e exposto via **API Gateway** com suporte a **HTTPS** e **JWT**.
 
-## 🚀 Funcionalidades Principais
+---
 
-### 1. Autenticação com AWS Cognito
-- Registro de usuários
-- Login com JWT
-- Recuperação de senha
-- Confirmação de email
-- Gerenciamento de perfil
+## 🌐 Arquitetura
+Usuário → API Gateway (HTTPS + JWT Cognito)
+↓
+ECS Fargate (Spring Boot)
+↓
+AWS Cognito (Auth)
+↓
+DynamoDB (Terraform Lock) + S3 (State)
 
-### 2. Serviço de Email (Amazon SES)
-- Envio de emails de boas-vindas
-- Notificações de segurança
-- Templates HTML personalizados
-- Rastreamento de entrega
+## ⚙️ Tecnologias e Serviços Utilizados
+🧠 Spring Boot 3 + Java 21
 
-### 3. Armazenamento (Amazon S3)
-- Upload de fotos de perfil
-- Armazenamento de documentos
-- URLs pré-assinadas
-- Gerenciamento de arquivos
+🔐 AWS Cognito (Auth + JWT)
 
-### 4. Auditoria (DynamoDB)
-- Registro de tentativas de login
-- Histórico de alterações de senha
-- Atualizações de perfil
-- Rastreamento de atividades
+🐳 ECS (Fargate) — Containers serverless
 
-### 5. Monitoramento (CloudWatch)
-- Métricas de uso
-- Logs de aplicação
-- Alertas configuráveis
-- Dashboard de monitoramento
+📦 ECR — Repositório de imagens Docker
 
-## 🛠️ Tecnologias
+🌐 API Gateway HTTP API
 
-- Java 21
-- Spring Boot 3.2.5
-- Spring Security
-- AWS SDK 2.25.23
-- Swagger/OpenAPI
-- Lombok
+🔧 Terraform + Terragrunt — Infra como código
 
-## 📦 Dependências AWS
+🔥 GitHub Actions — CI/CD
 
-```xml
-<aws.sdk.version>2.25.23</aws.sdk.version>
+🔐 IAM Roles e Policies
 
-<!-- AWS Cognito -->
-<dependency>
-    <groupId>software.amazon.awssdk</groupId>
-    <artifactId>cognitoidentityprovider</artifactId>
-    <version>${aws.sdk.version}</version>
-</dependency>
+☁️ S3 + DynamoDB — Backend remoto do Terraform
 
-<!-- Amazon SES -->
-<dependency>
-    <groupId>software.amazon.awssdk</groupId>
-    <artifactId>ses</artifactId>
-    <version>${aws.sdk.version}</version>
-</dependency>
+📈 CloudWatch — Logs e monitoramento
 
-<!-- Amazon S3 -->
-<dependency>
-    <groupId>software.amazon.awssdk</groupId>
-    <artifactId>s3</artifactId>
-    <version>${aws.sdk.version}</version>
-</dependency>
+## 📁 Estrutura do Projeto
+```plaintext
+backend/
+├── src/
+├── Dockerfile
+├── pom.xml
+└── README.md
 
-<!-- DynamoDB -->
-<dependency>
-    <groupId>software.amazon.awssdk</groupId>
-    <artifactId>dynamodb</artifactId>
-    <version>${aws.sdk.version}</version>
-</dependency>
-
-<!-- CloudWatch -->
-<dependency>
-    <groupId>software.amazon.awssdk</groupId>
-    <artifactId>cloudwatch</artifactId>
-    <version>${aws.sdk.version}</version>
-</dependency>
+infra/
+├── modules/
+│   ├── vpc/
+│   ├── ecs/
+│   ├── ecr/
+│   ├── api-gateway/
+│   └── security/
+├── live/
+│   ├── dev/
+│   └── prod/
+└── terragrunt.hcl
 ```
+---
 
-## ⚙️ Configuração
+## 🔥 Funcionalidades
 
-### Variáveis de Ambiente Necessárias
+- ✅ Registro de usuário (via AWS Cognito)
+- ✅ Login com retorno de JWT (Access Token + ID Token + Refresh Token)
+- ✅ Recuperação e redefinição de senha
+- ✅ Refresh Token
+- ✅ Autorização via grupos Cognito (`cognito:groups`)
+- ✅ API Gateway com HTTPS
+- ✅ Deploy automático via CI/CD
 
-```properties
-# AWS Credentials
-aws.region=
-aws.access-key-id=
-aws.secret-key=
+---
 
-# Cognito
-aws.cognito.user-pool-id=
-aws.cognito.client-id=
+## 🏗️ Deploy da Infraestrutura
 
-# SES
-aws.ses.from-email=
+### ✔️ Pré-requisitos:
 
-# S3
-aws.s3.bucket-name=
-```
+- AWS CLI configurado
+- Terraform instalado
+- Terragrunt instalado
+- Docker instalado (para build local)
 
-## 📚 Documentação API
+### ✔️ Passos:
 
-A documentação da API está disponível através do Swagger UI em:
-```
-http://localhost:8080/swagger-ui.html
-```
-
-## 🔧 Instalação e Execução
-
-1. Clone o repositório
 ```bash
-git clone https://github.com/seu-usuario/auth-service.git
+cd infra/live/dev
+
+# Inicializar
+terragrunt init
+
+# Visualizar mudanças
+terragrunt plan
+
+# Aplicar infraestrutura
+terragrunt apply
 ```
 
-2. Configure as variáveis de ambiente
 
-3. Execute o projeto
+## 🐳 Build e Deploy da Imagem Docker
 ```bash
-mvn spring-boot:run
+# Build local da imagem
+docker build -t auth-service .
+
+# Login no ECR
+aws ecr get-login-password --region us-east-1 | \
+docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
+
+# Push da imagem
+docker tag auth-service:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/auth-service:latest
+docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/auth-service:latest
 ```
 
-## 📊 Monitoramento
+## 🚀 Pipeline GitHub Actions
+✅ Build da imagem Docker
 
-### Métricas Disponíveis
-- Tentativas de login (sucesso/falha)
-- Latência da API
-- Usuários concorrentes
-- Tentativas de redefinição de senha
+✅ Push para AWS ECR
 
-### Alertas Configurados
-- Alta taxa de falhas de login
-- Latência elevada
-- Picos de uso
-- Erros críticos
+✅ Atualização da Task Definition no ECS
 
-## 🔐 Segurança
+✅ Deploy automático no ECS
 
-- Autenticação JWT
-- Proteção contra ataques de força bruta
-- Rate limiting
-- Logs de auditoria
-- Monitoramento de atividades suspeitas
+✔️ O pipeline roda automaticamente a cada push no branch main.
 
-## 📝 Logs e Auditoria
+## 🔗 Endpoints da API
+Método	Endpoint	Descrição
+| Método | Endpoint                             | Descrição                    |
+|--------|---------------------------------------|------------------------------|
+| POST   | `/api/auth/register`                 | Registrar usuário            |
+| POST   | `/api/auth/login`                    | Login e geração de tokens    |
+| POST   | `/api/auth/forgot-password`          | Esqueci minha senha          |
+| POST   | `/api/auth/confirm-forgot-password`  | Confirmar nova senha         |
+| GET    | `/api/user/profile`                  | (Protegido) Ver perfil       |
 
-### Eventos Registrados
-- Login/Logout
-- Alterações de senha
-- Atualizações de perfil
-- Upload de arquivos
-- Envio de emails
+## 🔐 Autenticação JWT Cognito
+Após realizar o login e obter o accessToken, envie nas requisições protegidas no header HTTP assim:
+```http
+Authorization: Bearer {accessToken}
+```
+
+## 🌎 API Gateway URL
+```
+https://{api-id}.execute-api.us-east-1.amazonaws.com
+✔️ Esse endpoint pode ser substituído por um domínio próprio via Route 53 + ACM.
+
+```
+## 📜 Variáveis Sensíveis (GitHub Secrets)
+
+| Nome                         | Descrição                         |
+|------------------------------|------------------------------------|
+| `AWS_ACCESS_KEY_ID`          | Chave da AWS                      |
+| `AWS_SECRET_ACCESS_KEY`      | Secret da AWS                     |
+| `AWS_ACCOUNT_ID`             | ID da conta AWS                   |
+| `AWS_REGION`                 | Região AWS (ex.: `us-east-1`)     |
+| `ECR_REPOSITORY`             | Nome do repositório no ECR        |
+| `ECS_CLUSTER_NAME`           | Nome do Cluster ECS               |
+| `ECS_SERVICE_NAME`           | Nome do Service ECS               |
+| `ECS_TASK_DEFINITION_FAMILY` | Nome da Task Definition           |
+
+🛑 Desligar tudo para não gerar custos
+```bash
+cd infra/live/dev
+terragrunt destroy
+```
+✔️ Isso deleta toda a infraestrutura.
+
+
+##  🚀 Melhorias Futuras
+✔️ Implementação de domínio customizado (Route 53 + ACM)
+
+✔️ Load Balancer na frente do ECS
+
+✔️ Monitoramento avançado com CloudWatch + SNS
+
+✔️ Rate limiting e proteção extra no API Gateway
+
+✔️ Gerenciamento de ambientes multi-account (via Organizations)
 
 ## 🤝 Contribuição
+Sinta-se livre para abrir PRs, issues ou propor melhorias.
 
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+## 📜 Licença
+Este projeto está licenciado sob a MIT License.
 
-## 📄 Licença
+## 👨‍💻 Desenvolvido por
+Emerson Alves — Backend Engineer
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+ ☁️ Desenvolvedor em AWS, Terraform, Spring Boot e Arquitetura Cloud.

@@ -155,10 +155,25 @@ https://{api-id}.execute-api.us-east-1.amazonaws.com
 | `ECS_SERVICE_NAME`           | Nome do Service ECS               |
 | `ECS_TASK_DEFINITION_FAMILY` | Nome da Task Definition           |
 
-🛑 Desligar tudo para não gerar custos
-```bash
-cd infra/live/dev
-terragrunt destroy
+## Deploy e Destroy automatizados com GitHub Actions
+
+Este projeto utiliza workflows do GitHub Actions para automatizar o deploy e o destroy da infraestrutura Terraform.
+
+### Como acionar o deploy
+- Faça um commit na branch `main` com a mensagem contendo `#deploy` (exemplo: `feat: nova feature #deploy`).
+- O workflow de deploy será executado automaticamente.
+- Também é possível rodar manualmente pela aba **Actions** do GitHub, selecionando o workflow "Terraform Deploy" e clicando em **Run workflow**.
+
+### Como acionar o destroy
+- Faça um commit na branch `main` com a mensagem contendo `#destroy` (exemplo: `chore: limpeza de ambiente #destroy`).
+- O workflow de destroy será executado automaticamente.
+- Também é possível rodar manualmente pela aba **Actions** do GitHub, selecionando o workflow "Terraform Destroy" e clicando em **Run workflow**.
+
+### Observações
+- Os módulos `router53-acm` e `api-gateway-domain` não são aplicados nem destruídos automaticamente para evitar custos extras com Route 53.
+- Certifique-se de que os secrets da AWS estejam configurados em **Settings > Secrets and variables > Actions**.
+- Consulte os arquivos `.github/workflows/terraform-deploy.yml` e `.github/workflows/terraform-destroy.yml` para detalhes e ordem dos módulos.
+
 ```
 ✔️ Isso deleta toda a infraestrutura.
 
@@ -183,4 +198,4 @@ Este projeto está licenciado sob a MIT License.
 ## 👨‍💻 Desenvolvido por
 Emerson Alves — Backend Engineer
 
- ☁️ Desenvolvedor em AWS, Terraform, Spring Boot e Arquitetura Cloud.
+☁️ Desenvolvedor em AWS, Terraform, Spring Boot e Arquitetura Cloud.

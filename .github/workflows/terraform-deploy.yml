@@ -22,6 +22,33 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
+      - name: Limpar locks antigos do Terraform (DynamoDB)
+        run: |
+          LOCK_TABLE="terraform-lock" # ajuste se necessário
+          MAX_AGE_MINUTES=30
+          aws dynamodb scan --table-name "$LOCK_TABLE" --query "Items[*]" > locks.json
+          for row in $(jq -c '.[]' locks.json); do
+            LOCK_ID=$(echo $row | jq -r '.LockID.S')
+            INFO=$(echo $row | jq -r '.Info.S // empty')
+            # Se não houver Info, remova o lock (pode ser um lock antigo)
+            if [ -z "$INFO" ]; then
+              aws dynamodb delete-item --table-name "$LOCK_TABLE" --key "{\"LockID\": {\"S\": \"$LOCK_ID\"}}"
+              echo "Lock $LOCK_ID removido (sem Info)"
+              continue
+            fi
+            # Se houver Info, tente extrair a data de criação (opcional)
+            CREATED=$(echo "$INFO" | grep -oP 'Created: \K[0-9\- :]+' | head -1)
+            if [ -n "$CREATED" ]; then
+              CREATED_TS=$(date -d "$CREATED" +%s 2>/dev/null || date -j -f "%Y-%m-%d %H:%M:%S" "$CREATED" +%s 2>/dev/null)
+              NOW=$(date +%s)
+              AGE=$(( (NOW - CREATED_TS) / 60 ))
+              if [ "$AGE" -gt $MAX_AGE_MINUTES ]; then
+                aws dynamodb delete-item --table-name "$LOCK_TABLE" --key "{\"LockID\": {\"S\": \"$LOCK_ID\"}}"
+                echo "Lock $LOCK_ID removido (idade: $AGE min)"
+              fi
+            fi
+          done
+        shell: bash
       - name: Terraform Init
         run: terraform init
       - name: Terraform Apply
@@ -53,6 +80,33 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
+      - name: Limpar locks antigos do Terraform (DynamoDB)
+        run: |
+          LOCK_TABLE="terraform-lock" # ajuste se necessário
+          MAX_AGE_MINUTES=30
+          aws dynamodb scan --table-name "$LOCK_TABLE" --query "Items[*]" > locks.json
+          for row in $(jq -c '.[]' locks.json); do
+            LOCK_ID=$(echo $row | jq -r '.LockID.S')
+            INFO=$(echo $row | jq -r '.Info.S // empty')
+            # Se não houver Info, remova o lock (pode ser um lock antigo)
+            if [ -z "$INFO" ]; then
+              aws dynamodb delete-item --table-name "$LOCK_TABLE" --key "{\"LockID\": {\"S\": \"$LOCK_ID\"}}"
+              echo "Lock $LOCK_ID removido (sem Info)"
+              continue
+            fi
+            # Se houver Info, tente extrair a data de criação (opcional)
+            CREATED=$(echo "$INFO" | grep -oP 'Created: \K[0-9\- :]+' | head -1)
+            if [ -n "$CREATED" ]; then
+              CREATED_TS=$(date -d "$CREATED" +%s 2>/dev/null || date -j -f "%Y-%m-%d %H:%M:%S" "$CREATED" +%s 2>/dev/null)
+              NOW=$(date +%s)
+              AGE=$(( (NOW - CREATED_TS) / 60 ))
+              if [ "$AGE" -gt $MAX_AGE_MINUTES ]; then
+                aws dynamodb delete-item --table-name "$LOCK_TABLE" --key "{\"LockID\": {\"S\": \"$LOCK_ID\"}}"
+                echo "Lock $LOCK_ID removido (idade: $AGE min)"
+              fi
+            fi
+          done
+        shell: bash
       - name: Terraform Init
         run: terraform init
       - name: Terraform Plan

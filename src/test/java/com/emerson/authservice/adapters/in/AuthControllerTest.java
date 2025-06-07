@@ -43,6 +43,7 @@ class AuthControllerTest {
     void setUp() {
     }
 
+
     @Test
     void login_ok() {
         var req = TestMocks.validLoginRequest();

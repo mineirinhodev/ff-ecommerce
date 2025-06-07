@@ -1,17 +1,15 @@
 name: CI/CD - Build e Deploy no ECS
 
 on:
-  workflow_run:
-    workflows: ["Terraform Deploy"]
-    types:
-      - completed
+  push:
+    branches:
+      - main
 
 env:
   IMAGE_TAG: latest
 
 jobs:
   build-and-deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:

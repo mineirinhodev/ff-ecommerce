@@ -14,4 +14,5 @@ public class UserProfileResponse {
     private String userStatus;
     private Instant createdAt;
     private Instant lastModifiedAt;
+    private String whatsappNumber;
 } 

@@ -1,15 +1,123 @@
 spring:
   application:
     name: auth-service
+  main:
+    web-application-type: servlet
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      idle-timeout: 30000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+      ssl: true
+      auto-commit: false
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        connection:
+          provider_disables_autocommit: true
+        jdbc:
+          batch_size: 50
+          fetch_size: 50
+        order_inserts: true
+        order_updates: true
+        generate_statistics: true
+    open-in-view: false
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      continue-on-error: false
+  transaction:
+    default-timeout: 30s
+    rollback-on-commit-failure: true
 
-aws:
-  region: us-east-1
-  # Credenciais são opcionais se estiver usando IAM Role
-  # accessKeyId: sua-access-key
-  # secretKey: sua-secret-key
-  cognito:
-    userPoolId: ${COGNITO_USER_POOL_ID}
-    clientId: ${COGNITO_CLIENT_ID}
+# Logging
+logging:
+  level:
+    root: INFO
+    org.springframework.boot.actuate: DEBUG
+    org.springframework.web: DEBUG
+    com.emerson.authservice: DEBUG
+
+# Resilience4j Configurações
+resilience4j:
+  ratelimiter:
+    instances:
+      auth-api:
+        limit-for-period: 100
+        limit-refresh-period: 1s
+        timeout-duration: 500ms
+        register-health-indicator: true
+        subscribe-for-events: true
+        event-consumer-buffer-size: 10
+  circuitbreaker:
+    instances:
+      auth-api:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+        register-health-indicator: true
+        subscribe-for-events: true
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,ratelimiters
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when_authorized
+      show-components: when_authorized
+      probes:
+        enabled: true
+    info:
+      env:
+        enabled: false
+      git:
+        enabled: false
+  info:
+    env:
+      enabled: false
+    git:
+      enabled: false
+  server:
+    port: 8081
+    address: 127.0.0.1
+  security:
+    enabled: true
+    roles: ACTUATOR_ADMIN
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 900000  # 15 minutos
+  refresh-token-expiration: 604800000  # 7 dias
 
 server:
-  port: 8080 
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: ${SERVER_CONTEXT_PATH:/api}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method 

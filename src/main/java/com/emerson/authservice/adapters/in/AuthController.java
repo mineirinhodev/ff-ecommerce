@@ -5,11 +5,8 @@ import com.emerson.authservice.application.RegisterUserUseCase;
 import com.emerson.authservice.application.ForgotPasswordUseCase;
 import com.emerson.authservice.application.ConfirmForgotPasswordUseCase;
 import com.emerson.authservice.application.RefreshTokenUseCase;
-import com.emerson.authservice.dto.LoginRequest;
-import com.emerson.authservice.dto.RegisterRequest;
-import com.emerson.authservice.dto.ForgotPasswordRequest;
-import com.emerson.authservice.dto.ConfirmForgotPasswordRequest;
-import com.emerson.authservice.dto.RefreshTokenRequest;
+import com.emerson.authservice.domain.UserService;
+import com.emerson.authservice.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -25,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 @Tag(name = "Authentication", description = "Endpoints for user authentication")
 public class AuthController {
@@ -35,6 +32,7 @@ public class AuthController {
     private final ForgotPasswordUseCase forgotPasswordUseCase;
     private final ConfirmForgotPasswordUseCase confirmForgotPasswordUseCase;
     private final RefreshTokenUseCase refreshTokenUseCase;
+    private final UserService userService;
 
     @Operation(summary = "User login", description = "Performs user login and returns access tokens")
     @ApiResponses(value = {
@@ -60,7 +58,7 @@ public class AuthController {
     public ResponseEntity<Void> register(
             @Parameter(description = "New user data")
             @Valid @RequestBody RegisterRequest request) {
-        registerUserUseCase.execute(request.getEmail(), request.getPassword(), request.getName());
+        registerUserUseCase.execute(request.getEmail(), request.getPassword(), request.getName(),request.getWhatsappNumber());
         return ResponseEntity.status(201).build();
     }
 
@@ -103,5 +101,27 @@ public class AuthController {
             @Valid @RequestBody ConfirmForgotPasswordRequest request) {
         confirmForgotPasswordUseCase.execute(request.getEmail(), request.getConfirmationCode(), request.getNewPassword());
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Validate token", description = "Validates if a token is still valid")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Token is valid"),
+        @ApiResponse(responseCode = "401", description = "Invalid token")
+    })
+    @GetMapping("/validate-token")
+    public ResponseEntity<Void> validateToken() {
+        // Se chegou aqui, o token é válido pois passou pelo filtro de segurança
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Get current user", description = "Gets information about the current user")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "User information retrieved successfully",
+                content = @Content(schema = @Schema(implementation = UserProfileResponse.class))),
+        @ApiResponse(responseCode = "401", description = "User not authenticated")
+    })
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileResponse> getCurrentUser() {
+        return ResponseEntity.ok(userService.getCurrentUserProfile());
     }
 } 

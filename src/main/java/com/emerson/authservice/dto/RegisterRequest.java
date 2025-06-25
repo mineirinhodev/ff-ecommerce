@@ -24,4 +24,8 @@ public class RegisterRequest {
     @NotBlank(message = "Name is required")
     @Size(min = 3, message = "Name must be at least 3 characters long")
     private String name;
+
+    @NotBlank(message = "whatsappNumber")
+    @Size(min = 3, message = "whatsappnumber")
+    private String whatsappNumber;
 }

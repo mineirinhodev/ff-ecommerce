@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 public class RegisterUserUseCase {
     private final AuthService authService;
 
-    public void execute(String email, String password, String name) {
-        authService.register(email, password, name);
+    public void execute(String email, String password, String name,String whatsappNumber) {
+        authService.register(email, password, name,whatsappNumber);
     }
 } 
